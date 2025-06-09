@@ -20,5 +20,13 @@ variable "environment" {
 }
 
 variable "zone_name" {
-  default = "devopstraining.space"
+  default = "daws76s.online"
+}
+
+variable app_version {
+  
+}
+
+variable "iam_instance_profile" {
+  default = "ShellScriptRoleForRoboshop"
 }
