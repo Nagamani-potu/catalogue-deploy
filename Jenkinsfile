@@ -1,95 +1,76 @@
-pipeline {
-    agent {
-        node {
-            label 'AGENT-1'
-        }
-    }
-
-    // environment {
-    //     packageVersion = ''
-    //     nexusURL = '172.31.22.176:8081' // ✅ Port included
-    // }
-
-    options {
-        timeout(time: 1, unit: 'HOURS')
-        disableConcurrentBuilds()
-    }
-    parameters {
-        string(name: 'version', defaultValue: '', description: 'What is the artifact version?')
-        string(name: 'environment', defaultValue: 'dev', description: 'What is environment?')
-        booleanParam(name: 'Destroy', defaultValue: 'false', description: 'What is Destroy?')
-        booleanParam(name: 'Create', defaultValue: 'false', description: 'What is Create?')
-    }
+ // build
     stages {
-        stage('Get the version') {
+        stage('Print version') {
             steps {
-                script {
-                    def packageJson = readJSON file: 'package.json'
-                    packageVersion = packageJson.version
-                    echo "Application version: $packageVersion"
+                sh """
+                    echo "version: ${params.version}"
+                    echo "environment: ${params.environment}"
+                """
+            }
+        }
+
+        stage('Init') {
+            steps {
+                sh """
+                    cd terraform
+                    terraform init --backend-config=${params.environment}/backend.tf -reconfigure
+                """
+            }
+        }
+
+        stage('Plan') {
+            when{
+                expression{
+                    params.Create
                 }
             }
-        }
-
-        stage('Install dependencies') {
             steps {
-                sh 'npm install'
+                sh """
+                    cd terraform
+                    terraform plan -var-file=${params.environment}/${params.environment}.tfvars -var="app_version=${params.version}"
+                """
             }
         }
 
-        stage('Build') {
+        stage('Apply') {
+            when{
+                expression{
+                    params.Create
+                }
+            }
             steps {
-                sh '''
-                    ls -la
-                    zip -q -r catalogue.zip ./Jenkinsfile ./node_modules ./package.json ./package-lock.json ./schema ./server.js -x ".git/*" -x "*.zip"
-                    ls -ltr
-                '''
+                sh """
+                    cd terraform
+                    terraform apply -var-file=${params.environment}/${params.environment}.tfvars -var="app_version=${params.version}" -auto-approve
+                """
             }
         }
-
-        stage('Verify Artifact') {
+        stage('Destroy') {
+            when{
+                expression{
+                    params.Destroy
+                }
+            }
             steps {
-                sh 'ls -lh catalogue.zip'
+                sh """
+                    cd terraform
+                    terraform destroy -var-file=${params.environment}/${params.environment}.tfvars -var="app_version=${params.version}" -auto-approve
+                """
             }
         }
-
-        stage('Publish Artifact') {
-            steps {
-                nexusArtifactUploader(
-                    nexusVersion: 'nexus3',
-                    protocol: 'http',
-                    nexusUrl: "${nexusURL}",
-                    groupId: 'com.roboshop',
-                    version: "${packageVersion}",
-                    repository: 'catalogue',
-                    credentialsId: 'nexus-auth',
-                    artifacts: [[
-                        artifactId: 'catalogue',
-                        classifier: '',
-                        file: 'catalogue.zip',
-                        type: 'zip'
-                    ]]
-                )
-            }
-        }
-
-        stage('Deploy') {
-            steps {
-                sh 'echo "Here I wrote shell script"'
-            }
-        }
+        
     }
-
-    post {
-        always {
-            echo 'Pipeline completed. Cleaning up workspace...'
+    // post build
+    post { 
+        always { 
+            echo 'I will always say Hello again!'
             deleteDir()
         }
-        failure {
-            echo 'Pipeline failed. Please check the logs for details.'
+        failure { 
+            echo 'this runs when pipeline is failed, used generally to send some alerts'
         }
-        success {
-            echo 'Pipeline succeeded. Artifact published and deployment complete.'
+        success{
+            echo 'I will say Hello when pipeline is success'
         }
     }
 }
