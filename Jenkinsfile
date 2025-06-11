@@ -1,4 +1,13 @@
- // build
+pipeline {
+    agent any
+
+    parameters {
+        string(name: 'version', defaultValue: 'v1.0.0', description: 'Application Version')
+        string(name: 'environment', defaultValue: 'dev', description: 'Deployment Environment')
+        booleanParam(name: 'Create', defaultValue: true, description: 'Create Infrastructure')
+        booleanParam(name: 'Destroy', defaultValue: false, description: 'Destroy Infrastructure')
+    }
+
     stages {
         stage('Print version') {
             steps {
@@ -19,10 +28,8 @@
         }
 
         stage('Plan') {
-            when{
-                expression{
-                    params.Create
-                }
+            when {
+                expression { params.Create }
             }
             steps {
                 sh """
@@ -33,10 +40,8 @@
         }
 
         stage('Apply') {
-            when{
-                expression{
-                    params.Create
-                }
+            when {
+                expression { params.Create }
             }
             steps {
                 sh """
@@ -45,11 +50,10 @@
                 """
             }
         }
+
         stage('Destroy') {
-            when{
-                expression{
-                    params.Destroy
-                }
+            when {
+                expression { params.Destroy }
             }
             steps {
                 sh """
@@ -58,9 +62,8 @@
                 """
             }
         }
-        
     }
-    // post build
+
     post { 
         always { 
             echo 'I will always say Hello again!'
@@ -69,7 +72,7 @@
         failure { 
             echo 'this runs when pipeline is failed, used generally to send some alerts'
         }
-        success{
+        success {
             echo 'I will say Hello when pipeline is success'
         }
     }
