@@ -18,6 +18,16 @@ pipeline {
             }
         }
 
+        stage('Validate Parameters') {
+            steps {
+                script {
+                    if (params.Create && params.Destroy) {
+                        error "You cannot set both Create and Destroy to true. Please choose one."
+                    }
+                }
+            }
+        }
+
         stage('Init') {
             steps {
                 sh """
@@ -34,7 +44,7 @@ pipeline {
             steps {
                 sh """
                     cd terraform
-                    terraform plan -var-file=${params.environment}/${params.environment}.tfvars -var="app_version=${params.version}"
+                    terraform plan -var-file=${params.environment}/${params.environment}.tfvars -var="app_version=${params.version}" -input=false
                 """
             }
         }
@@ -46,7 +56,7 @@ pipeline {
             steps {
                 sh """
                     cd terraform
-                    terraform apply -var-file=${params.environment}/${params.environment}.tfvars -var="app_version=${params.version}" -auto-approve
+                    terraform apply -var-file=${params.environment}/${params.environment}.tfvars -var="app_version=${params.version}" -auto-approve -input=false
                 """
             }
         }
@@ -58,18 +68,18 @@ pipeline {
             steps {
                 sh """
                     cd terraform
-                    terraform destroy -var-file=${params.environment}/${params.environment}.tfvars -var="app_version=${params.version}" -auto-approve
+                    terraform destroy -var-file=${params.environment}/${params.environment}.tfvars -var="app_version=${params.version}" -auto-approve -input=false
                 """
             }
         }
     }
 
-    post { 
-        always { 
+    post {
+        always {
             echo 'I will always say Hello again!'
             deleteDir()
         }
-        failure { 
+        failure {
             echo 'this runs when pipeline is failed, used generally to send some alerts'
         }
         success {
