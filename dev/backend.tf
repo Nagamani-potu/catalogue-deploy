@@ -1,4 +1,4 @@
-bucket         = "state-dev-devopstraining"
-key            = "catalogue"
+bucket         = "my-terraform-state-bucket"
+key            = "catalogue/dev/terraform.tfstate"
 region         = "us-east-1"
-dynamodb_table = "devops-locking-dev"
+dynamodb_table = "terraform-locks"
